@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import os
 import downloader
+import time
 
 class analyzer:
     def __init__(self, key, model, ticker):
@@ -61,23 +62,34 @@ class analyzer:
     def extract_sections(self, year):
         with open(self.find_10k_path(year), "r", encoding="utf-8") as file:
             content = file.read()
-        regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1A|1B|7A|7|8|9)\.{0,1})|(ITEM\s(1A|1B|7A|7|8|9))')
+
+        regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1A|1B|7A|7|8)\.{0,1})|(ITEM\s(1A|1B|7A|7|8))')
         matches = list(regex.finditer(content))
         sections = [(match.group(), match.start()) for match in matches]
 
         df = pd.DataFrame(sections, columns=["Item", "Start"])
-        df["End"] = df["Start"].shift(-1, fill_value=len(content))
         df["Item"] = df["Item"].apply(lambda x: re.sub(r'(>|&nbsp;|\s|&#160;|\.|ITEM)', '', x).upper())
-        df["Item"] = df["Item"].apply(lambda x: x)
 
-        unique_items = df["Item"].unique()
+        # Remove "ITEM" and normalize
+        df["Item"] = df["Item"].str.replace("ITEM", "")
+
         final_sections = []
-        for item in unique_items:
-            latest_match = df[df["Item"] == item].iloc[-1]
-            final_sections.append(latest_match)
+        unique_items = df["Item"].unique()
 
-        result_df = pd.DataFrame(final_sections)
-        return result_df.reset_index(drop=True)
+        for item in unique_items:
+            item_df = df[df["Item"] == item]
+            if len(item_df) > 1:
+                # Step 1: Remove the first occurrence
+                item_df = item_df.iloc[1:]
+                # Step 2: Keep the first occurrence of the remaining items
+                final_sections.append(item_df.iloc[0])
+            else:
+                final_sections.append(item_df.iloc[0])
+
+        result_df = pd.DataFrame(final_sections, columns=["Item", "Start"])
+        result_df["End"] = result_df["Start"].shift(-1, fill_value=len(content))
+        
+        return result_df
     
     def get_item_text(self, section, year):
         df = self.df[year]
@@ -85,7 +97,7 @@ class analyzer:
             return
         with open(self.find_10k_path(year), "r", encoding="utf-8") as file:
             content = file.read()
-        content = content[df[df['Item'] == 'ITEM1A']['Start'].iloc[0]:df[df['Item'] == 'ITEM1A']['End'].iloc[0]]
+        content = content[df[df['Item'] == section]['Start'].iloc[0]:df[df['Item'] == section]['End'].iloc[0]]
         content = BeautifulSoup(content, features="html.parser")
         content = content.get_text("\n\n")
         content = re.sub(r'\s+', ' ', content).strip()
@@ -96,7 +108,7 @@ class analyzer:
     def analyze_1(self):
         # given the dataframe of text, return the analysis of first part
         max_token_length = 30000
-        text = self.get_item_text('ITEM1A.', 2022)
+        text = self.get_item_text('1A', 2022)
         chunks = [text[i:i + max_token_length] for i in range(0, len(text), max_token_length)]
         summary_placeholder = "give a brief summary of that company {self.ticker}'s main business, and its current risk, challenges, write unknown if u can't infer from text."
         summarization = ""
@@ -110,10 +122,53 @@ class analyzer:
         return self.get_message(final_prompt)
 
     
-    def analyze_7(self, df):
-        
-        return
+    def analyze_GI(self):
+        recent_years = sorted(self.df.keys(), reverse=True)[:5]
+        free_cash_flows = []
+        max_token_length = 30000
+        count = 0
+        for _, year in enumerate(recent_years):
+            df = self.df[year]
+            if df.empty:
+                free_cash_flows.append(0)
+                continue
+
+            text = self.get_item_text('7', year)
+            if not text:
+                free_cash_flows.append(0)
+                continue
+            chunks = [text[i:i + max_token_length] for i in range(0, len(text), max_token_length)]
+            summarization = ""
+
+            for chunk in chunks:
+                prompt = f"Here is portion of the text:\n\n{chunk}\n\nPlease extract the EBIT for the year {year}, if u can't infer from the text, just say nothing."
+                summarization += self.get_message(prompt)
+                count += 1
+                if count % 10 == 9:  # After 10 requests, take a rest for a minute
+                    time.sleep(60)
+            
+            final_prompt = f"Now you finished reading each portion of text, and that's your partial answers {summarization}, please give me the EBIT of that company at that year, I want u to give a single pure int, no more words, no unit, and return 0 if u don't know, DONT SAY ANYTHING"
+            print(final_prompt)
+            free_cash_flows.append(int(self.get_message(final_prompt)))
+
+        return free_cash_flows
     
+    def analyze_income(self):
+        # given the dataframe of text, return the analysis of first part
+        max_token_length = 30000
+        text = self.get_item_text('7', 2022)
+        chunks = [text[i:i + max_token_length] for i in range(0, len(text), max_token_length)]
+        summary_placeholder = "find {self.ticker}'s products or income source, and return a dictionary that key is the product, and value is the net sale of that product (or earning of that income source), also include a total earning/sale in the dict with key named total(you should always make sure that sum of all earning/sales equals to total, no negative numbers), and no more words, don't return if u don't found"
+        summarization = ""
+        # Feed chunks to the model
+        for chunk in chunks:
+            prompt = f"Here is portion of the text:\n\n{chunk}\n\n{summary_placeholder}"
+            summarization += self.get_message(prompt)
+        
+        # Final prompt for summary
+        final_prompt = f"Now you finished reading each portion of text, and that's your partial answers {summarization}, please give a final dictionary that key is the source/product, and value is the net sale/earning from that source, also include a total earning/sale in the dict with key named total(you should make sure that sum of all earning/sales equals to total sale, no negative numbers). Just return those and no more explanation."
+        return self.get_message(final_prompt)
+
     def find_10k_path(self, year):
         base_path = "sec-edgar-filings"
         ticker_path = os.path.join(base_path, self.ticker, "10-K")
@@ -126,8 +181,9 @@ class analyzer:
 
 
 def main():
-    a = analyzer("d9afe4b3-bb3f-46b0-b37b-373cae94aba8", "Meta-Llama-3-8B-Instruct", "MSFT")
-    print(a.analyze_1())
+    a = analyzer("d9afe4b3-bb3f-46b0-b37b-373cae94aba8", "Meta-Llama-3-8B-Instruct", "TSLA")
+    print(a.analyze_GI())
+
 
     
 
