@@ -61,7 +61,7 @@ class analyzer:
     def extract_sections(self, year):
         with open(self.find_10k_path(year), "r", encoding="utf-8") as file:
             content = file.read()
-        regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1A|1B|7A|7|8)\.{0,1})|(ITEM\s(1A|1B|7A|7|8))')
+        regex = re.compile(r'(>Item(\s|&#160;|&nbsp;)(1A|1B|7A|7|8|9)\.{0,1})|(ITEM\s(1A|1B|7A|7|8|9))')
         matches = list(regex.finditer(content))
         sections = [(match.group(), match.start()) for match in matches]
 

@@ -39,7 +39,7 @@ class TickerAnalyzerGUI:
         self.text_output.delete(1.0, tk.END)
         self.text_output.insert(tk.END, f"Analyzing {ticker}...\n")
  
-        a = analyzer.analyzer("d9afe4b3-bb3f-46b0-b37b-373cae94aba8", "Meta-Llama-3-8B-Instruct", 'AAPL')
+        a = analyzer.analyzer("d9afe4b3-bb3f-46b0-b37b-373cae94aba8", "Meta-Llama-3-8B-Instruct", ticker)
         # Example Text Output
         self.text_output.insert(tk.END, f"Result for {ticker}: {a.analyze_1()}\n")
 
