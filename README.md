@@ -16,6 +16,8 @@ Item 7 includes large amount of financial data, which is important in both work 
 we want to see whether it's going worse, or going better. Specifically, we want look at its free cash flow trend in recent years using a bar chart, which could reflect a lot about it's current trend.
 ### Income composition
 We also want to know what it profits from. Like for the APPL, is it mainly earn from Iphone or Macbook, we would want a pie chart to see this closely.
+### PE ratio compared to others
 # Demo
+I dont got the time to finish all, and the LLM used is too bad, so demo for some basic function: [Link to Demo](https://youtu.be/UVpf-Za8BAY).
 
 

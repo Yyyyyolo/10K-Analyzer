@@ -41,9 +41,7 @@ class TickerAnalyzerGUI:
 
     def draw_sales_pie_chart(self, sales_data_str):
         # Extract the dictionary part using regular expression
-        print(sales_data_str)
         dict_match = re.search(r"\{.*\}", sales_data_str, re.DOTALL)
-        print(dict_match)
         if dict_match:
             sales_data_str = dict_match.group(0)
             try:
@@ -59,20 +57,20 @@ class TickerAnalyzerGUI:
         labels = []
         sizes = []
         total_sales = sales_data.get("Total", 0)
-        other_sales = total_sales
 
+        # Populate labels and sizes excluding "Total"
         for label, sales in sales_data.items():
-            if label != "Total":
+            if label != "Total" and label != "total":
                 labels.append(label)
                 sizes.append(sales)
-                other_sales -= sales
 
+        other_sales = total_sales - sum(sizes)
         if other_sales > 0:
             labels.append("Other")
             sizes.append(other_sales)
 
         # Create the pie chart
-        fig = plt.Figure(figsize=(9, 6))
+        fig = plt.Figure(figsize=(10, 7))
         ax = fig.add_subplot(111)
         ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
         ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
@@ -89,23 +87,14 @@ class TickerAnalyzerGUI:
  
         a = analyzer.analyzer("d9afe4b3-bb3f-46b0-b37b-373cae94aba8", "Meta-Llama-3-8B-Instruct", ticker)
         # Example Text Output
-        self.text_output.insert(tk.END, f"Result for {ticker}: {a.analyze_1()}\n")
+        text = a.analyze_1()
+        self.text_output.insert(tk.END, f"Result for {ticker}: {text}\n")
         #time.sleep(60)
         pie_str = a.analyze_income()
+        print(pie_str)
         self.draw_sales_pie_chart(pie_str)
-        #time.sleep(60)
-        """# Example Plot 1
-        fig1 = plt.Figure(figsize=(4, 3))
-        ax1 = fig1.add_subplot(111)
-        x = np.linspace(0, 2 * np.pi, 100)
-        y = np.sin(x)
-        ax1.plot(x, y)
-        ax1.set_title('Sine Wave')
-
-        chart1 = FigureCanvasTkAgg(fig1, self.canvas1)
-        chart1.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH)
-        chart1.draw()"""
-
+        downloader.delete_download(ticker)
+        
         
 def main():
     root = tk.Tk()

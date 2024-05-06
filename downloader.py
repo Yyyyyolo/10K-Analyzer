@@ -11,6 +11,7 @@ def download_10K(ticker) -> None:
         dl.get("10-K", ticker, after="1995-01-01", before="2023-01-01")
     except Exception as e:
         logging.error("An error occurred: %s", e)
+        return None
     return
 
 def delete_download(ticker):
@@ -21,7 +22,7 @@ def delete_download(ticker):
 
 def main():
     download_10K('AAPL')
-    delete_download('F')
+    delete_download('AAPL')
 
 if __name__ == '__main__':
     main()

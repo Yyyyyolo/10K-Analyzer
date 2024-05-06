@@ -158,7 +158,7 @@ class analyzer:
         max_token_length = 30000
         text = self.get_item_text('7', 2022)
         chunks = [text[i:i + max_token_length] for i in range(0, len(text), max_token_length)]
-        summary_placeholder = "find {self.ticker}'s products or income source, and return a dictionary that key is the product, and value is the net sale of that product (or earning of that income source), also include a total earning/sale in the dict with key named total(you should always make sure that sum of all earning/sales equals to total, no negative numbers), and no more words, don't return if u don't found"
+        summary_placeholder = "find {self.ticker}'s products, and return a dictionary that key is the product, and value is the net sale of that product, also include a total earning/sale in the dict with key named total(you should always make sure that sum of all earning/sales equals to total, no negative numbers), and no more words, don't return if u don't found"
         summarization = ""
         # Feed chunks to the model
         for chunk in chunks:
@@ -166,7 +166,7 @@ class analyzer:
             summarization += self.get_message(prompt)
         
         # Final prompt for summary
-        final_prompt = f"Now you finished reading each portion of text, and that's your partial answers {summarization}, please give a final dictionary that key is the source/product, and value is the net sale/earning from that source, also include a total earning/sale in the dict with key named total(you should make sure that sum of all earning/sales equals to total sale, no negative numbers). Just return those and no more explanation."
+        final_prompt = f"Now you finished reading each portion of text, and that's your partial answers {summarization}, please give a final dictionary that key is the product, and value is the net sale/earning from that source, also include a total earning/sale in the dict with key named total(you should make sure that sum of all earning/sales equals to total sale, no negative numbers). Just return those and no more explanation."
         return self.get_message(final_prompt)
 
     def find_10k_path(self, year):
