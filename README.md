@@ -1,7 +1,7 @@
 # 10K Analyzer Overview
 For this project, I used LLMA from Awan LLM to analyze the 10-K files for a given ticker and generate some insights and graphs. 
 ## Run
-install neccessary libaries and cd to directory and enter "py gui.py"
+install neccessary libaries and cd to directory and enter "py gui.py", or enter the dist folder, click the gui.exe file.
 # Tech Stack
 I use a tech stack which python as the backend, python tkinter for UI design, not that complicated. It could run locally after installing neccessary libraries, but not able to run remotely. Reasons using this: mainly because I'm familiar with them and don't require much self-learning, and it only use one single programming language which make it much easier to write.<br>
 I konw probably deploy on platform like heroku, google cloud, which make it a web app, should be better, but I really don't got much time for this in these days.
